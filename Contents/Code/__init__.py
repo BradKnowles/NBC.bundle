@@ -1,71 +1,102 @@
-import re, random
-from urlparse import urlparse
-from PMS import *
+import re, time
 
 ####################################################################################################
 
-PLUGIN_PREFIX     = "/video/NBC"
+TITLE  = 'NBC'
+PREFIX = '/video/NBC'
+ART    = 'art-default.jpg'
+ICON   = 'icon-default.jpg'
 
-NBC_URL                     = "http://www.nbc.com"
-NBC_FULL_EPISODES_SHOW_LIST = "http://www.nbc.com/Video/library/full-episodes/"
-NBC_URL_NEWEST              = "http://www.nbc.com/video/library"
-NBC_URL_MV                  = "http://www.nbc.com/video/library/categories/most-viewed/"
-NBC_URL_TR                  = "http://www.nbc.com/video/library/categories/top-rated"
-PLUGIN_ARTWORK              = 'art-default.jpg'
-PLUGIN_ICON_DEFAULT         = 'icon-default.jpg'
-CACHE_INTERVAL              = 3600
-DEBUG                       = False
+BASE_URL     = 'http://www.nbc.com'
+FULL_EPS_URL = '%s/video/library/full-episodes/' % BASE_URL
 
 ####################################################################################################
 
 def Start():
-  Plugin.AddPrefixHandler(PLUGIN_PREFIX, MainMenu, "NBC", PLUGIN_ICON_DEFAULT, PLUGIN_ARTWORK)
-  Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
-  
-  MediaContainer.art       = R(PLUGIN_ARTWORK)
-  DirectoryItem.thumb = R(PLUGIN_ICON_DEFAULT)
-  WebVideoItem.thumb = R(PLUGIN_ICON_DEFAULT)
+  Plugin.AddPrefixHandler(PREFIX, MainMenu, TITLE, ICON, ART)
+  Plugin.AddViewGroup('List', viewMode='List', mediaType='items')
+  Plugin.AddViewGroup('InfoList', viewMode='InfoList', mediaType='items')
 
+  MediaContainer.title1 = TITLE
+  MediaContainer.viewGroup = 'List'
+  MediaContainer.art = R(ART)
+
+  DirectoryItem.thumb = R(ICON)
+  WebVideoItem.thumb  = R(ICON)
+
+  HTTP.CacheTime = CACHE_1HOUR
+  HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.13) Gecko/20101203 Firefox/3.6.13'
 
 ####################################################################################################
+
 def MainMenu():
-    dir = MediaContainer(mediaType='video') 
-    dir.Append(Function(DirectoryItem(VideoPage, "Newest"), pageUrl = NBC_URL_NEWEST))
-    dir.Append(Function(DirectoryItem(VideoPage, "Most Viewed"), pageUrl = NBC_URL_MV))
-    dir.Append(Function(DirectoryItem(VideoPage, "Top Rated"), pageUrl = NBC_URL_TR))
-    dir.Append(Function(DirectoryItem(all_shows, "All Shows"), pageUrl = NBC_FULL_EPISODES_SHOW_LIST))
-    return dir
-    
-####################################################################################################
-def all_shows(sender, pageUrl):
-    dir = MediaContainer(title2=sender.itemTitle)
-    content = XML.ElementFromURL(pageUrl, True)
-    for item in content.xpath('//div[@class="item-list group-full-eps"]//div/ul/ul/li'):
-      titleUrl = item.xpath("a")[0].get('href')
-      image = item.xpath("a/img")[0].get('src')
-      title = item.xpath("a")[0].get('title')
-      art=PLUGIN_ARTWORK
-      showart=titleUrl.replace("/video","")
-      if showart.count("classic-tv") == 0:
-        showart=showart + "/take_it/downloads/wallpaper/1024x768_1.jpg"
-        string1 = "/categories*"
+  dir = MediaContainer()
 
-      dir.Append(Function(DirectoryItem(VideoPage, title), pageUrl = titleUrl))
-    return dir 
+  content = HTML.ElementFromURL(FULL_EPS_URL, errors='ignore')
+  for show in content.xpath('//div[contains(@class, "group-full-eps")]//li'):
+    title = show.xpath('./p/text()[last()]')[0].strip()
+    url = show.xpath('./a')[0].get('href')
+    thumb = show.xpath('./a/img')[0].get('src')
+
+    dir.Append(Function(DirectoryItem(Show, title=title, thumb=Function(Thumb, url=thumb)), url=url, thumb=thumb))
+
+  return dir
 
 ####################################################################################################
-def VideoPage(sender, pageUrl):
-    dir = MediaContainer(title2=sender.itemTitle)
-    content = XML.ElementFromURL(pageUrl, True)
-    for item2 in content.xpath('//div[@class="group-list"]//ul/li'):
-        vidUrl_t = item2.xpath("a")[0].get('href')
-        
-        if vidUrl_t.count("http://") == 0:
-          vidUrl=NBC_URL+vidUrl_t
-        art = NBC_URL + vidUrl_t + "images/backgrounds/header-bg.png"
-        
-        title2 = item2.xpath(".//em")[0].text
-        title2 = title2 + " " + item2.xpath("a")[0].get('title')
-        if vidUrl_t.count("http://") == 0:
-          dir.Append(WebVideoItem(vidUrl, title2))
-    return dir
+
+def Show(sender, url, thumb):
+  dir = MediaContainer(title2=sender.itemTitle)
+
+  if url.find(BASE_URL) == -1:
+    base = re.search('(http://[^/]+)', url).group(1)
+  else:
+    base = BASE_URL
+
+  content = HTML.ElementFromURL(url, errors='ignore')
+  for category in content.xpath('//h3[text()="Full Episodes"]/following-sibling::ul[1]/li/a'):
+    title = category.text.strip()
+    url = base + category.get('href')
+
+    dir.Append(Function(DirectoryItem(Episodes, title=title, thumb=Function(Thumb, url=thumb)), url=url, base=base))
+
+  return dir
+
+####################################################################################################
+
+def Episodes(sender, url, base):
+  dir = MediaContainer(title2=sender.itemTitle, viewGroup='InfoList')
+
+  content = HTML.ElementFromURL(url, errors='ignore')
+  for episode in content.xpath('//li[@class="list_full_detail_horiz"]'):
+    title = episode.xpath('.//p[@class="list_full_det_title"]//a')[0].text.strip()
+    summary = episode.xpath('.//p[@class="list_full_des"]//text()')[0]
+
+    try:
+      airdate = episode.xpath('./div[@class="list_full_det_time"]/p[1]/text()')[0].strip()
+      date = time.strptime(airdate, '%m/%d/%y')
+      subtitle = time.strftime('%a, %d %b %Y', date)
+    except:
+      subtitle = None
+
+    thumb = episode.xpath('./a/img')[0].get('src')
+    video_url = base + episode.xpath('./a')[0].get('href')
+
+    dir.Append(WebVideoItem(video_url, title=title, subtitle=subtitle, summary=summary, thumb=Function(Thumb, url=thumb)))
+
+  # More than 1 page?
+  if len(content.xpath('//div[@class="nbcu_pager"]')) > 0:
+    next_url = base + content.xpath('//div[@class="nbcu_pager"]//a[text()="Next"]')[0].get('href')
+
+    if next_url != url:
+      dir.Extend(Episodes(sender, next_url, base))
+
+  return dir
+
+####################################################################################################
+
+def Thumb(url):
+  try:
+    data = HTTP.Request(url, cacheTime=CACHE_1MONTH).content
+    return DataObject(data, 'image/jpeg')
+  except:
+    return Redirect(R(ICON))
