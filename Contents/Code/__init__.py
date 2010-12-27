@@ -5,7 +5,7 @@ import re, time
 TITLE  = 'NBC'
 PREFIX = '/video/NBC'
 ART    = 'art-default.jpg'
-ICON   = 'icon-default.jpg'
+ICON   = 'icon-default.png'
 
 BASE_URL     = 'http://www.nbc.com'
 FULL_EPS_URL = '%s/video/library/full-episodes/' % BASE_URL
