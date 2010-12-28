@@ -91,14 +91,18 @@ def Episodes(sender, url, base):
       subtitle = None
 
     thumb_url = episode.xpath('./a/img')[0].get('src')
-    pid = re.search('thumb/(.+)_large', thumb_url).group(1)
+    uri = re.search('\.com/(.+?)/thumb/(.+?)_large', thumb_url)
+    path = uri.group(1)
+    pid = uri.group(2)
+
+    # Classic tv gets 4:3 AR thumbs, newer tv 16:9 AR
     classic_tv = False
     if url.find('classic-tv') != -1:
       classic_tv = True
 
     video_url = base + episode.xpath('./a')[0].get('href')
 
-    dir.Append(WebVideoItem(video_url, title=title, subtitle=subtitle, summary=summary, thumb=Function(Thumb, pid=pid, classic_tv=classic_tv)))
+    dir.Append(WebVideoItem(video_url, title=title, subtitle=subtitle, summary=summary, thumb=Function(Thumb, path=path, pid=pid, classic_tv=classic_tv)))
 
   # More than 1 page?
   if len(content.xpath('//div[@class="nbcu_pager"]')) > 0:
@@ -114,19 +118,15 @@ def Episodes(sender, url, base):
 
 ####################################################################################################
 
-def Thumb(url=None, pid=None, classic_tv=None):
+def Thumb(url=None, path=None, pid=None, classic_tv=False):
   if url == None:
     if classic_tv == True:
-      url = THUMB_URL % (480, 'nbcrewind2', pid)
+      url = THUMB_URL % (480, path, pid)
     else:
-      url = THUMB_URL % (360, 'nbc2', pid)
+      url = THUMB_URL % (360, path, pid)
 
   try:
     data = HTTP.Request(url, cacheTime=CACHE_1MONTH).content
     return DataObject(data, 'image/jpeg')
   except:
-    if classic_tv == False:
-      url = THUMB_URL % (360, 'nbcrewind2', pid)
-      return Thumb(url)
-    else:
-      return Redirect(R(ICON))
+    return Redirect(R(ICON))
