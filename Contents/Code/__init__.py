@@ -3,7 +3,7 @@ import re, time
 ####################################################################################################
 
 TITLE  = 'NBC'
-PREFIX = '/video/NBC'
+PREFIX = '/video/nbc'
 ART    = 'art-default.jpg'
 ICON   = 'icon-default.png'
 
