@@ -57,7 +57,7 @@
 		<!-- Video ends -->
 		<event>
 			<condition>
-				<url matches="http://www.nbc.com/video/library/" />
+				<url matches="ad\.doubleclick\.net.*vp-pause" />
 			</condition>
 			<action>
 				<goto state="end" />
