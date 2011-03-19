@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site site="http://www.nbc.com"
-	plugin="http://widget.nbc.com/fullep/fullep_at25.swf"
+	plugin="http://.*nbc.com/.*/DirectWidget.swf"
 	initialState="prepare"
-	windowWidth="896"
-	windowHeight="622"
+	windowWidth="854"
+	windowHeight="534"
 	version="2.0">
 
-	<crop x="0" y="63" width="896" height="504" />
+	<crop x="0" y="28" width="854" height="480" />
 
-	<seekbar type="thumb">
-		<start x="62" y="596" />
-		<end   x="483" y="596" />
+<!-- New player, new seekbar that doesn't work, argh
+	<seekbar type="simple">
+		<start x="72" y="526" />
+		<end x="630" y="526" />
 		<played>
-			<color rgb="37d3fd" />
+			<color rgb="191919" />
 		</played>
 	</seekbar>
+-->
 
 	<!-- PREPARE -->
 	<state name="prepare">
@@ -23,7 +25,7 @@
 				<frameLoaded />
 			</condition>
 			<action>
-				<run script="x=generateCodeForm();x=x.replace(/[\s\S]+\&lt;embed src=&quot;([^&quot;]+)[\s\S]+/,'$1');document.getElementsByTagName('html')[0].innerHTML='&lt;embed type=&quot;application/x-shockwave-flash&quot; src=&quot;' + x + '&quot; height=&quot;622&quot; width=&quot;896&quot;&gt;';" />
+				<run script="x=generateCodeForm();x=x.replace(/[\s\S]+\&lt;embed src=&quot;([^&quot;]+)[\s\S]+/,'$1');document.getElementsByTagName('html')[0].innerHTML='&lt;embed type=&quot;application/x-shockwave-flash&quot; src=&quot;' + x + '&quot; height=&quot;534&quot; width=&quot;854&quot;&gt;';" />
 				<goto state="click-to-play" />
 			</action>
 		</event>
@@ -33,10 +35,10 @@
 	<state name="click-to-play">
 		<event>
 			<condition>
-				<color x="62" y="596" rgb="37d3fd" />
+				<url matches="mezzanine.*\.jpg" />
 			</condition>
 			<action>
-				<click x="33" y="596" />
+				<click x="426" y="270" />
 				<goto state="playing" />
 			</action>
 		</event>
@@ -49,7 +51,7 @@
 				<command name="pause" />
 			</condition>
 			<action>
-				<click x="33" y="596" />
+				<click x="18" y="524" />
 				<goto state="paused" />
 			</action>
 		</event>
@@ -57,7 +59,7 @@
 		<!-- Video ends -->
 		<event>
 			<condition>
-				<url matches="ad\.doubleclick\.net.*vp-pause" />
+				<url matches="mezzanine.*\.jpg" />
 			</condition>
 			<action>
 				<goto state="end" />
@@ -72,7 +74,7 @@
 				<command name="play" />
 			</condition>
 			<action>
-                <click x="33" y="596" />
+                <click x="18" y="524" />
 				<goto state="playing" />
 			</action>
 		</event>
