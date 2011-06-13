@@ -1,9 +1,6 @@
 import re, time
 
-####################################################################################################
-
 TITLE  = 'NBC'
-PREFIX = '/video/nbc'
 ART    = 'art-default.jpg'
 ICON   = 'icon-default.png'
 
@@ -17,9 +14,8 @@ FULL_EPS_URL = '%s/video/library/full-episodes/' % BASE_URL
 THUMB_URL = 'http://video.nbc.com/player/mezzanine/image.php?w=640&h=%d&path=%s/%s_mezzn.jpg&trusted=yes'
 
 ####################################################################################################
-
 def Start():
-  Plugin.AddPrefixHandler(PREFIX, MainMenu, TITLE, ICON, ART)
+  Plugin.AddPrefixHandler('/video/nbc', MainMenu, TITLE, ICON, ART)
   Plugin.AddViewGroup('List', viewMode='List', mediaType='items')
   Plugin.AddViewGroup('InfoList', viewMode='InfoList', mediaType='items')
 
@@ -31,10 +27,9 @@ def Start():
   WebVideoItem.thumb  = R(ICON)
 
   HTTP.CacheTime = CACHE_1HOUR
-  HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.13) Gecko/20101203 Firefox/3.6.13'
+  HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:2.0.1) Gecko/20100101 Firefox/4.0.1'
 
 ####################################################################################################
-
 def MainMenu():
   dir = MediaContainer()
 
@@ -49,7 +44,6 @@ def MainMenu():
   return dir
 
 ####################################################################################################
-
 def Show(sender, url, thumb):
   dir = MediaContainer(title2=sender.itemTitle)
 
@@ -74,7 +68,6 @@ def Show(sender, url, thumb):
   return dir
 
 ####################################################################################################
-
 def Episodes(sender, url, base):
   dir = MediaContainer(title2=sender.itemTitle, viewGroup='InfoList')
 
@@ -117,7 +110,6 @@ def Episodes(sender, url, base):
   return dir
 
 ####################################################################################################
-
 def Thumb(url=None, path=None, pid=None, classic_tv=False):
   if url == None:
     if classic_tv == True:

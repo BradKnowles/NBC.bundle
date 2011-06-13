@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site site="http://.*(nbc|latenightwithjimmyfallon)\.com"
 	plugin="http://.*(nbc|latenightwithjimmyfallon)\.com/.*DirectWidget\.swf"
+	agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:2.0.1) Gecko/20100101 Firefox/4.0.1"
 	initialState="prepare"
 	windowWidth="854"
 	windowHeight="534"
-	version="2.0">
+	version="3.0">
 
 	<crop x="0" y="28" width="854" height="480" />
 
