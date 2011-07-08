@@ -26,7 +26,7 @@
 				<frameLoaded />
 			</condition>
 			<action>
-				<run script="x=generateCodeForm();x=x.replace(/[\s\S]+\&lt;embed src=&quot;([^&quot;]+)[\s\S]+/,'$1');document.getElementsByTagName('html')[0].innerHTML='&lt;embed type=&quot;application/x-shockwave-flash&quot; src=&quot;' + x + '&quot; height=&quot;534&quot; width=&quot;854&quot;&gt;';" />
+				<run script="x=document.getElementById('embedCodeField').value;x=x.replace(/width=&quot;[0-9]{3,}&quot;/,'width=&quot;854&quot;');x=x.replace(/height=&quot;[0-9]{3,}&quot;/,'height=&quot;534&quot;');document.getElementsByTagName('html')[0].innerHTML=x;" />
 				<goto state="click-to-play" />
 			</action>
 		</event>
