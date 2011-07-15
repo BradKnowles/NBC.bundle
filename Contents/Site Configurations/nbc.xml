@@ -26,7 +26,7 @@
 			<action>
 				<run script="generateCodeForm();" />
 				<pause time="2000" />
-				<run script="x=document.getElementById('embedCodeField').value;x=x.replace(/width=&quot;[0-9]{3,}&quot;/,'width=&quot;854&quot;');x=x.replace(/height=&quot;[0-9]{3,}&quot;/,'height=&quot;534&quot;');document.getElementsByTagName('html')[0].innerHTML=x;" />
+				<run script="x=document.getElementById('embedCodeField').value;x=x.replace(/width=&quot;[0-9]{3,}&quot;/,'width=&quot;854&quot;');x=x.replace(/height=&quot;[0-9]{3,}&quot;/,'height=&quot;539&quot;');document.getElementsByTagName('html')[0].innerHTML=x;" />
 				<goto state="click-to-play" />
 			</action>
 		</event>
