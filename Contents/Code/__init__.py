@@ -56,7 +56,7 @@ def Show(sender, url, thumb):
     url = base + url
 
   content = HTML.ElementFromURL(url, errors='ignore')
-  for category in content.xpath('//h3[text()="Full Episodes"]/following-sibling::ul[1]/li/a[contains(@href, "categories")]'):
+  for category in content.xpath('//*[text()="Full Episodes"]/following-sibling::ul[1]/li/a[contains(@href, "categories")]'):
     title = category.text.strip()
     url = base + category.get('href')
 
@@ -72,6 +72,8 @@ def Episodes(sender, url, base):
   dir = MediaContainer(title2=sender.itemTitle, viewGroup='InfoList')
 
   content = HTML.ElementFromURL(url, errors='ignore')
+
+  # Process one type of video pages (with classes named 'list_full_detail_horiz')
   for episode in content.xpath('//li[@class="list_full_detail_horiz"]'):
     title = episode.xpath('.//p[@class="list_full_det_title"]//a')[0].text.strip()
     summary = episode.xpath('.//p[@class="list_full_des"]//text()')[0]
@@ -96,6 +98,15 @@ def Episodes(sender, url, base):
     video_url = base + episode.xpath('./a')[0].get('href')
 
     dir.Append(WebVideoItem(video_url, title=title, subtitle=subtitle, summary=summary, thumb=Function(Thumb, path=path, pid=pid, classic_tv=classic_tv)))
+
+  # Process another type of video pages (with classes named 'thumb-block')
+  for episode in content.xpath('//div[contains(@class, "thumb-view")]//div[contains(@class, "thumb-block")]'):
+    title = episode.xpath('.//div[@class="title"]')[0].text.strip()
+    thumb_url = episode.xpath('.//img')[0].get('src')
+    thumb_url = re.sub('w=[0-9]+&h=[0-9]+', 'w=640&h=360', thumb_url)
+    video_url = base + episode.xpath('./a')[0].get('href')
+
+    dir.Append(WebVideoItem(video_url, title=title, thumb=Function(Thumb, url=thumb_url)))
 
   # More than 1 page?
   if len(content.xpath('//div[@class="nbcu_pager"]')) > 0:
