@@ -1,135 +1,124 @@
-import re, time
+import time
 
-TITLE  = 'NBC'
-ART    = 'art-default.jpg'
-ICON   = 'icon-default.png'
+NAME = 'NBC'
+ART = 'art-default.jpg'
+ICON = 'icon-default.png'
 
-BASE_URL     = 'http://www.nbc.com'
+BASE_URL = 'http://www.nbc.com'
 FULL_EPS_URL = '%s/video/library/full-episodes/' % BASE_URL
 
 # Thumbs
-# %d = 360 or 480 for classic tv
-# %s = 'nbc2' or 'nbcrewind2' for classic tv
+# %d = 360, or 480 for classic tv
+# %s = 'nbc2', or 'nbcrewind2' for classic tv
 # %s = pid
 THUMB_URL = 'http://video.nbc.com/player/mezzanine/image.php?w=640&h=%d&path=%s/%s_mezzn.jpg&trusted=yes'
 
+RE_BASE_URL = Regex('(http://[^/]+)')
+RE_PATH_PID = Regex('\.com/(.+?)/thumb/(.+?)_large')
+RE_THUMB_SIZE = Regex('w=[0-9]+&h=[0-9]+')
+
 ####################################################################################################
 def Start():
-  Plugin.AddPrefixHandler('/video/nbc', MainMenu, TITLE, ICON, ART)
-  Plugin.AddViewGroup('List', viewMode='List', mediaType='items')
-  Plugin.AddViewGroup('InfoList', viewMode='InfoList', mediaType='items')
 
-  MediaContainer.title1 = TITLE
-  MediaContainer.viewGroup = 'List'
-  MediaContainer.art = R(ART)
+	Plugin.AddPrefixHandler('/video/nbc', MainMenu, NAME, ICON, ART)
+	Plugin.AddViewGroup('List', viewMode='List', mediaType='items')
+	Plugin.AddViewGroup('InfoList', viewMode='InfoList', mediaType='items')
 
-  DirectoryItem.thumb = R(ICON)
-  WebVideoItem.thumb  = R(ICON)
+	ObjectContainer.title1 = NAME
+	ObjectContainer.view_group = 'List'
+	ObjectContainer.art = R(ART)
 
-  HTTP.CacheTime = CACHE_1HOUR
-  HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:8.0) Gecko/20100101 Firefox/8.0'
+	DirectoryObject.thumb = R(ICON)
+	VideoClipObject.thumb = R(ICON)
+
+	HTTP.CacheTime = CACHE_1HOUR
+	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:12.0) Gecko/20100101 Firefox/12.0'
 
 ####################################################################################################
 def MainMenu():
-  dir = MediaContainer()
 
-  content = HTML.ElementFromURL(FULL_EPS_URL, errors='ignore')
-  for show in content.xpath('//div[contains(@class, "group-full-eps")]//li'):
-    title = show.xpath('./p/text()[last()]')[0].strip()
-    url = show.xpath('./a')[0].get('href')
-    thumb = show.xpath('./a/img')[0].get('src')
+	oc = ObjectContainer()
+	content = HTML.ElementFromURL(FULL_EPS_URL)
 
-    dir.Append(Function(DirectoryItem(Show, title=title, thumb=Function(Thumb, url=thumb)), url=url, thumb=thumb))
+	for show in content.xpath('//div[contains(@class, "group-full-eps")]//li'):
+		title = show.xpath('./p/text()[last()]')[0].strip()
+		url = show.xpath('./a')[0].get('href')
+		thumb = show.xpath('./a/img')[0].get('src')
 
-  return dir
+		oc.add(DirectoryObject(key=Callback(Show, title=title, url=url, thumb=thumb), title=title, thumb=Callback(GetThumb, url=thumb)))
 
-####################################################################################################
-def Show(sender, url, thumb):
-  dir = MediaContainer(title2=sender.itemTitle)
-
-  try:
-    base = re.search('(http://[^/]+)', url).group(1)
-  except:
-    base = BASE_URL
-
-  if url.find('http://') == -1:
-    url = base + url
-
-  content = HTML.ElementFromURL(url, errors='ignore')
-  for category in content.xpath('//*[text()="Full Episodes"]/following-sibling::ul[1]/li/a[contains(@href, "categories")]'):
-    title = category.text.strip()
-    url = base + category.get('href')
-
-    dir.Append(Function(DirectoryItem(Episodes, title=title, thumb=Function(Thumb, url=thumb)), url=url, base=base))
-
-  if len(dir) == 0:
-    return MessageContainer('Empty', 'This directory is empty')
-
-  return dir
+	return oc
 
 ####################################################################################################
-def Episodes(sender, url, base):
-  dir = MediaContainer(title2=sender.itemTitle, viewGroup='InfoList')
+def Show(title, url, thumb):
 
-  content = HTML.ElementFromURL(url, errors='ignore')
+	oc = ObjectContainer(title2=title)
 
-  # Process one type of video pages (with classes named 'list_full_detail_horiz')
-  for episode in content.xpath('//li[@class="list_full_detail_horiz"]'):
-    title = episode.xpath('.//p[@class="list_full_det_title"]//a')[0].text.strip()
-    summary = episode.xpath('.//p[@class="list_full_des"]//text()')[0]
+	try:
+		base = RE_BASE_URL.search(url).group(1)
+	except:
+		base = BASE_URL
 
-    try:
-      airdate = episode.xpath('./div[@class="list_full_det_time"]/p[1]/text()')[0].strip()
-      date = time.strptime(airdate, '%m/%d/%y')
-      subtitle = time.strftime('%a, %d %b %Y', date)
-    except:
-      subtitle = None
+	if url.find('http://') == -1:
+		url = base + url
 
-    thumb_url = episode.xpath('./a/img')[0].get('src')
-    uri = re.search('\.com/(.+?)/thumb/(.+?)_large', thumb_url)
-    path = uri.group(1)
-    pid = uri.group(2)
+	content = HTML.ElementFromURL(url)
 
-    # Classic tv gets 4:3 AR thumbs, newer tv 16:9 AR
-    classic_tv = False
-    if url.find('classic-tv') != -1:
-      classic_tv = True
+	for category in content.xpath('//*[text()="Full Episodes"]/following-sibling::ul[1]/li/a[contains(@href, "categories")]'):
+		title = category.text.strip()
+		url = base + category.get('href')
 
-    video_url = base + episode.xpath('./a')[0].get('href')
+		oc.add(DirectoryObject(key=Callback(Episodes, title=title, url=url, base=base), title=title, thumb=Callback(GetThumb, url=thumb)))
 
-    dir.Append(WebVideoItem(video_url, title=title, subtitle=subtitle, summary=summary, thumb=Function(Thumb, path=path, pid=pid, classic_tv=classic_tv)))
+	if len(oc) == 0:
+		return MessageContainer('Empty', 'This directory is empty')
 
-  # Process another type of video pages (with classes named 'thumb-block')
-  for episode in content.xpath('//div[contains(@class, "thumb-view")]//div[contains(@class, "thumb-block")]'):
-    title = episode.xpath('.//div[@class="title"]')[0].text.strip()
-    thumb_url = episode.xpath('.//img')[0].get('src')
-    thumb_url = re.sub('w=[0-9]+&h=[0-9]+', 'w=640&h=360', thumb_url)
-    video_url = base + episode.xpath('./a')[0].get('href')
-
-    dir.Append(WebVideoItem(video_url, title=title, thumb=Function(Thumb, url=thumb_url)))
-
-  # More than 1 page?
-  if len(content.xpath('//div[@class="nbcu_pager"]')) > 0:
-    next_url = base + content.xpath('//div[@class="nbcu_pager"]//a[text()="Next"]')[0].get('href')
-
-    if next_url != url:
-      dir.Extend(Episodes(sender, next_url, base))
-
-  if len(dir) == 0:
-    return MessageContainer('Empty', 'This directory is empty')
-
-  return dir
+	return oc
 
 ####################################################################################################
-def Thumb(url=None, path=None, pid=None, classic_tv=False):
-  if url == None:
-    if classic_tv == True:
-      url = THUMB_URL % (480, path, pid)
-    else:
-      url = THUMB_URL % (360, path, pid)
+def Episodes(title, url, base):
 
-  try:
-    data = HTTP.Request(url, cacheTime=CACHE_1MONTH).content
-    return DataObject(data, 'image/jpeg')
-  except:
-    return Redirect(R(ICON))
+	oc = ObjectContainer(title2=title, view_group='InfoList')
+	content = HTML.ElementFromURL(url)
+
+	for episode in content.xpath('//div[contains(@class, "thumb-view")]//div[contains(@class, "thumb-block")]'):
+		video_url = base + episode.xpath('./a')[0].get('href')
+		episode_title = episode.xpath('.//div[@class="title"]')[0].text.strip()
+		air_date = episode.xpath('./div[@class="meta"]/p')[0].text.split(': ', 1)[1]
+		date = Datetime.ParseDate(air_date).date()
+		thumb_url = episode.xpath('.//img')[0].get('src')
+		thumb_url = RE_THUMB_SIZE.sub('w=640&h=360', thumb_url)
+
+		oc.add(VideoClipObject(
+			url = video_url,
+			title = episode_title,
+			originally_available_at = date,
+			thumb = Callback(GetThumb, url=thumb_url)
+		))
+
+	# More than 1 page?
+	if len(content.xpath('//div[@class="nbcu_pager"]')) > 0:
+		next_url = base + content.xpath('//div[@class="nbcu_pager"]//a[text()="Next"]')[0].get('href')
+
+		if next_url != url:
+			oc.add(DirectoryObject(key=Callback(Episodes, title=title, url=next_url, base=base), title='Next ...'))
+
+	if len(oc) == 0:
+		return MessageContainer('Empty', 'This directory is empty')
+
+	return oc
+
+####################################################################################################
+def GetThumb(url=None, path=None, pid=None, classic_tv=False):
+
+	if url == None:
+		if classic_tv == True:
+			url = THUMB_URL % (480, path, pid)
+		else:
+			url = THUMB_URL % (360, path, pid)
+
+	try:
+		data = HTTP.Request(url, cacheTime=CACHE_1MONTH).content
+		return DataObject(data, 'image/jpeg')
+	except:
+		return Redirect(R(ICON))
