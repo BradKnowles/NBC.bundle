@@ -66,7 +66,7 @@ def Show(title, url, thumb):
 
 	for category in content.xpath('//*[text()="Full Episodes"]/following-sibling::ul[1]/li/a[contains(@href, "categories")]'):
 		title = category.text.strip()
-		if category.get('href').find('http://www.nbc.com') == -1:
+		if category.get('href').find(base) == -1:
 			url = base + category.get('href')
 		else:
 			url = category.get('href')
@@ -85,7 +85,7 @@ def Episodes(title, url, base):
 	content = HTML.ElementFromURL(url)
 
 	for episode in content.xpath('//div[contains(@class, "thumb-view")]//div[contains(@class, "thumb-block")]'):
-		if episode.xpath('./a')[0].get('href').find('http://www.nbc.com') == -1:
+		if episode.xpath('./a')[0].get('href').find(base) == -1:
 			video_url = base + episode.xpath('./a')[0].get('href')
 		else:
 			video_url = episode.xpath('./a')[0].get('href')
