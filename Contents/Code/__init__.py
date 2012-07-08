@@ -66,8 +66,11 @@ def Show(title, url, thumb):
 
 	for category in content.xpath('//*[text()="Full Episodes"]/following-sibling::ul[1]/li/a[contains(@href, "categories")]'):
 		title = category.text.strip()
-		url = base + category.get('href')
-
+		if category.get('href').find(base) == -1:
+			url = base + category.get('href')
+		else:
+			url = category.get('href')
+		
 		oc.add(DirectoryObject(key=Callback(Episodes, title=title, url=url, base=base), title=title, thumb=Callback(GetThumb, url=thumb)))
 
 	if len(oc) == 0:
@@ -82,7 +85,11 @@ def Episodes(title, url, base):
 	content = HTML.ElementFromURL(url)
 
 	for episode in content.xpath('//div[contains(@class, "thumb-view")]//div[contains(@class, "thumb-block")]'):
-		video_url = base + episode.xpath('./a')[0].get('href')
+		if episode.xpath('./a')[0].get('href').find(base) == -1:
+			video_url = base + episode.xpath('./a')[0].get('href')
+		else:
+			video_url = episode.xpath('./a')[0].get('href')
+
 		episode_title = episode.xpath('.//div[@class="title"]')[0].text.strip()
 		air_date = episode.xpath('./div[@class="meta"]/p')[0].text.split(': ', 1)[1]
 		date = Datetime.ParseDate(air_date).date()
