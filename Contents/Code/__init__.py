@@ -82,7 +82,6 @@ def Show(title, url, thumb):
 def Episodes(title, url, base):
 
 	oc = ObjectContainer(title2=title, view_group='InfoList')
-	Log.Debug(url)
 	content = HTML.ElementFromURL(url)
 
 	for episode in content.xpath('//div[contains(@class, "thumb-view")]//div[contains(@class, "thumb-block")]'):
