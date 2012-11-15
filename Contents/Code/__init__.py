@@ -1,5 +1,3 @@
-import time
-
 NAME = 'NBC'
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
@@ -20,24 +18,22 @@ RE_THUMB_SIZE = Regex('w=[0-9]+&h=[0-9]+')
 ####################################################################################################
 def Start():
 
-	Plugin.AddPrefixHandler('/video/nbc', MainMenu, NAME, ICON, ART)
 	Plugin.AddViewGroup('List', viewMode='List', mediaType='items')
 	Plugin.AddViewGroup('InfoList', viewMode='InfoList', mediaType='items')
 
 	ObjectContainer.title1 = NAME
-	ObjectContainer.view_group = 'List'
 	ObjectContainer.art = R(ART)
-
 	DirectoryObject.thumb = R(ICON)
 	VideoClipObject.thumb = R(ICON)
 
 	HTTP.CacheTime = CACHE_1HOUR
-	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:12.0) Gecko/20100101 Firefox/12.0'
+	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0'
 
 ####################################################################################################
+@handler('/video/nbc', NAME, thumb=ICON, art=ART)
 def MainMenu():
 
-	oc = ObjectContainer()
+	oc = ObjectContainer(view_group='List')
 	content = HTML.ElementFromURL(FULL_EPS_URL)
 
 	for show in content.xpath('//div[contains(@class, "group-full-eps")]//li'):
@@ -45,19 +41,18 @@ def MainMenu():
 		url = show.xpath('./a')[0].get('href')
 		thumb = show.xpath('./a/img')[0].get('src')
 
-		oc.add(DirectoryObject(key=Callback(Show, title=title, url=url, thumb=thumb), title=title, thumb=Callback(GetThumb, url=thumb)))
+		oc.add(DirectoryObject(key=Callback(Show, show=title, url=url, thumb=thumb), title=title, thumb=Callback(GetThumb, url=thumb)))
 
 	return oc
 
 ####################################################################################################
-def Show(title, url, thumb):
+@route('/video/nbc/show')
+def Show(show, url, thumb):
 
-	oc = ObjectContainer(title2=title)
+	oc = ObjectContainer(title2=show, view_group='List')
 
-	try:
-		base = RE_BASE_URL.search(url).group(1)
-	except:
-		base = BASE_URL
+	try: base = RE_BASE_URL.search(url).group(1)
+	except: base = BASE_URL
 
 	if url.find('http://') == -1:
 		url = base + url
@@ -71,17 +66,18 @@ def Show(title, url, thumb):
 		if url.find('http://') == -1:
 			url = base + url
 
-		oc.add(DirectoryObject(key=Callback(Episodes, title=title, url=url, base=base), title=title, thumb=Callback(GetThumb, url=thumb)))
+		oc.add(DirectoryObject(key=Callback(Episodes, show=show, title=title, url=url, base=base), title=title, thumb=Callback(GetThumb, url=thumb)))
 
 	if len(oc) == 0:
-		return MessageContainer('Empty', 'This directory is empty')
+		return ObjectContainer('Empty', 'This directory is empty')
 
 	return oc
 
 ####################################################################################################
-def Episodes(title, url, base):
+@route('/video/nbc/episodes')
+def Episodes(show, title, url, base):
 
-	oc = ObjectContainer(title2=title, view_group='InfoList')
+	oc = ObjectContainer(title1=show, title2=title, view_group='InfoList')
 	content = HTML.ElementFromURL(url)
 
 	for episode in content.xpath('//div[contains(@class, "thumb-view")]//div[contains(@class, "thumb-block")]'):
@@ -96,8 +92,9 @@ def Episodes(title, url, base):
 		thumb_url = episode.xpath('.//img')[0].get('src')
 		thumb_url = RE_THUMB_SIZE.sub('w=640&h=360', thumb_url)
 
-		oc.add(VideoClipObject(
+		oc.add(EpisodeObject(
 			url = video_url,
+			show = show,
 			title = episode_title,
 			originally_available_at = date,
 			thumb = Callback(GetThumb, url=thumb_url)
@@ -108,10 +105,10 @@ def Episodes(title, url, base):
 		next_url = base + content.xpath('//div[@class="nbcu_pager"]//a[text()="Next"]')[0].get('href')
 
 		if next_url != url:
-			oc.add(DirectoryObject(key=Callback(Episodes, title=title, url=next_url, base=base), title='Next ...'))
+			oc.add(NextPageObject(key=Callback(Episodes, title=title, url=next_url, base=base), title='Next ...'))
 
 	if len(oc) == 0:
-		return MessageContainer('Empty', 'This directory is empty')
+		return ObjectContainer('Empty', 'This directory is empty')
 
 	return oc
 
