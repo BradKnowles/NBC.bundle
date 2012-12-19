@@ -59,7 +59,7 @@ def Show(show, url, thumb):
 
 	content = HTML.ElementFromURL(url)
 
-	for category in content.xpath('//*[text()="Full Episodes"]/following-sibling::ul[1]/li/a[contains(@href, "categories")]'):
+	for category in content.xpath('//*[text()="Full Episodes" or text()="FULL EPISODES"]/following-sibling::ul[1]/li/a[contains(@href, "categories")]'):
 		title = category.text.strip()
 		url = category.get('href')
 
@@ -69,7 +69,7 @@ def Show(show, url, thumb):
 		oc.add(DirectoryObject(key=Callback(Episodes, show=show, title=title, url=url, base=base), title=title, thumb=Callback(GetThumb, url=thumb)))
 
 	if len(oc) == 0:
-		return ObjectContainer('Empty', 'This directory is empty')
+		return ObjectContainer(header='Empty', message='This directory is empty')
 
 	return oc
 
@@ -108,7 +108,7 @@ def Episodes(show, title, url, base):
 			oc.add(NextPageObject(key=Callback(Episodes, title=title, url=next_url, base=base), title='Next ...'))
 
 	if len(oc) == 0:
-		return ObjectContainer('Empty', 'This directory is empty')
+		return ObjectContainer(header='Empty', mesage='This directory is empty')
 
 	return oc
 
