@@ -3,7 +3,8 @@ ART = 'art-default.jpg'
 ICON = 'icon-default.png'
 
 BASE_URL = 'http://www.nbc.com'
-FULL_EPS_URL = '%s/video/library/full-episodes/' % BASE_URL
+CURRENT_SHOWS = '%s/video/library/full-episodes/' % BASE_URL
+CLASSIC_TV = '%s/classic-tv/' % BASE_URL
 
 # Thumbs
 # %d = 360, or 480 for classic tv
@@ -14,6 +15,7 @@ THUMB_URL = 'http://video.nbc.com/player/mezzanine/image.php?w=640&h=%d&path=%s/
 RE_BASE_URL = Regex('(http://[^/]+)')
 RE_PATH_PID = Regex('\.com/(.+?)/thumb/(.+?)_large')
 RE_THUMB_SIZE = Regex('w=[0-9]+&h=[0-9]+')
+RE_SHOW_ID = Regex('nbc.com/([^/]+)/')
 
 ####################################################################################################
 def Start():
@@ -27,19 +29,80 @@ def Start():
 	VideoClipObject.thumb = R(ICON)
 
 	HTTP.CacheTime = CACHE_1HOUR
-	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0'
+	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:18.0) Gecko/20100101 Firefox/18.0'
 
 ####################################################################################################
 @handler('/video/nbc', NAME, thumb=ICON, art=ART)
 def MainMenu():
 
 	oc = ObjectContainer(view_group='List')
-	content = HTML.ElementFromURL(FULL_EPS_URL)
+	oc.add(DirectoryObject(key=Callback(CurrentShows), title='Current Shows'))
+	oc.add(DirectoryObject(key=Callback(ClassicTV), title='Classic TV'))
+
+	return oc
+
+####################################################################################################
+@route('/video/nbc/currentshows')
+def CurrentShows():
+
+	oc = ObjectContainer(title2='Current Shows', view_group='List')
+	show_ids = []
+	content = HTML.ElementFromURL(CURRENT_SHOWS)
 
 	for show in content.xpath('//div[contains(@class, "group-full-eps")]//li'):
-		title = show.xpath('./p/text()[last()]')[0].strip()
-		url = show.xpath('./a')[0].get('href')
-		thumb = show.xpath('./a/img')[0].get('src')
+		url = show.xpath('./a/@href')[0]
+		if '/classic-tv/' in url:
+			continue
+
+		title = show.xpath('./p/text()')[0].strip()
+		thumb = show.xpath('./a/img/@src')[0]
+
+		id = RE_SHOW_ID.search(url)
+		if id:
+			show_ids.append(id.group(1))
+
+		oc.add(DirectoryObject(key=Callback(Show, show=title, url=url, thumb=thumb), title=title, thumb=Callback(GetThumb, url=thumb)))
+
+	# Try to find shows missing from the main video page
+	try:
+		content = HTML.ElementFromURL('http://www.nbc.com/assets/core/themes/2012/nbc/includes/auto-generated/dropdowns-global.shtml')
+
+		for show in content.xpath('//li[text()="Current Shows"]/parent::ul/following-sibling::div//ul/li/a'):
+			url = show.get('href')
+
+			id = RE_SHOW_ID.search(url)
+			if id:
+				id = id.group(1)
+
+			if id in show_ids:
+				continue
+
+			show_ids.append(id)
+			url = '%s/video' % url.rstrip('/')
+			title = show.text.strip()
+
+			oc.add(DirectoryObject(key=Callback(Show, show=title, url=url), title=title))
+	except:
+		pass
+
+	oc.objects.sort(key=lambda obj: obj.title.replace('The ', ''))
+	return oc
+
+####################################################################################################
+@route('/video/nbc/classictv')
+def ClassicTV():
+
+	oc = ObjectContainer(title2='Classic TV', view_group='List')
+	content = HTML.ElementFromURL(CLASSIC_TV)
+
+	for show in content.xpath('//h2[text()="classic tv"]/following-sibling::div//div[@class="thumb-block"]'):
+		url = show.xpath('.//a[contains(@href, "/classic-tv/") and contains(@href, "/video")]/@href')
+		if len(url) < 1:
+			continue
+
+		url = url[0]
+		title = show.xpath('.//div[@class="title"]/text()')[0].strip()
+		thumb = show.xpath('.//img/@src')[0]
 
 		oc.add(DirectoryObject(key=Callback(Show, show=title, url=url, thumb=thumb), title=title, thumb=Callback(GetThumb, url=thumb)))
 
@@ -47,7 +110,7 @@ def MainMenu():
 
 ####################################################################################################
 @route('/video/nbc/show')
-def Show(show, url, thumb):
+def Show(show, url, thumb=None):
 
 	oc = ObjectContainer(title2=show, view_group='List')
 
@@ -115,8 +178,8 @@ def Episodes(show, title, url, base):
 ####################################################################################################
 def GetThumb(url=None, path=None, pid=None, classic_tv=False):
 
-	if url == None:
-		if classic_tv == True:
+	if url is None:
+		if classic_tv:
 			url = THUMB_URL % (480, path, pid)
 		else:
 			url = THUMB_URL % (360, path, pid)
