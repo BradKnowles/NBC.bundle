@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title></title>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function()
+{
+	if (window.location.hash)
+	{
+		var video_id = window.location.hash.substring(1);
+
+		if (video_id.match(/^n?[0-9]{4,}$/))
+		{
+			$('#nbc-video-widget').attr('src', 'http://www.nbc.com/assets/video/widget/widget.html?vid='+video_id);
+		}
+		else
+		{
+			$('#nbc-video-widget').parent().html('<p>Invalid video id.</p>');
+		}
+	}
+	else
+	{
+		$('#nbc-video-widget').parent().html('<p>Hash missing from URL.</p>');
+	}
+});
+</script>
+</head>
+
+<body>
+	<iframe id="nbc-video-widget" width="777" height="437" src="" frameborder="0"></iframe>
+</body>
+</html>
