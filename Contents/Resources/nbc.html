@@ -16,12 +16,12 @@ $(document).ready(function()
 		}
 		else
 		{
-			$('#nbc-video-widget').parent().html('<p>Invalid video id.</p>');
+			document.title = 'Invalid video id.');
 		}
 	}
 	else
 	{
-		$('#nbc-video-widget').parent().html('<p>Hash missing from URL.</p>');
+		document.title = 'Hash missing from URL.');
 	}
 });
 </script>
