@@ -1,7 +1,3 @@
-NAME = 'NBC'
-ART = 'art-default.jpg'
-ICON = 'icon-default.png'
-
 BASE_URL = 'http://www.nbc.com'
 CURRENT_SHOWS = '%s/video/library/full-episodes/' % BASE_URL
 CLASSIC_TV = '%s/classic-tv/' % BASE_URL
@@ -13,29 +9,21 @@ CLASSIC_TV = '%s/classic-tv/' % BASE_URL
 THUMB_URL = 'http://video.nbc.com/player/mezzanine/image.php?w=640&h=%d&path=%s/%s_mezzn.jpg&trusted=yes'
 
 RE_BASE_URL = Regex('(http://[^/]+)')
-RE_PATH_PID = Regex('\.com/(.+?)/thumb/(.+?)_large')
 RE_THUMB_SIZE = Regex('w=[0-9]+&h=[0-9]+')
 RE_SHOW_ID = Regex('nbc.com/([^/]+)/')
 
 ####################################################################################################
 def Start():
 
-	Plugin.AddViewGroup('List', viewMode='List', mediaType='items')
-	Plugin.AddViewGroup('InfoList', viewMode='InfoList', mediaType='items')
-
-	ObjectContainer.title1 = NAME
-	ObjectContainer.art = R(ART)
-	DirectoryObject.thumb = R(ICON)
-	VideoClipObject.thumb = R(ICON)
-
+	ObjectContainer.title1 = 'NBC'
 	HTTP.CacheTime = CACHE_1HOUR
 	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:18.0) Gecko/20100101 Firefox/18.0'
 
 ####################################################################################################
-@handler('/video/nbc', NAME, thumb=ICON, art=ART)
+@handler('/video/nbc', 'NBC')
 def MainMenu():
 
-	oc = ObjectContainer(view_group='List')
+	oc = ObjectContainer()
 	oc.add(DirectoryObject(key=Callback(CurrentShows), title='Current Shows'))
 	oc.add(DirectoryObject(key=Callback(ClassicTV), title='Classic TV'))
 
@@ -45,7 +33,7 @@ def MainMenu():
 @route('/video/nbc/currentshows')
 def CurrentShows():
 
-	oc = ObjectContainer(title2='Current Shows', view_group='List')
+	oc = ObjectContainer(title2='Current Shows')
 	show_ids = []
 	content = HTML.ElementFromURL(CURRENT_SHOWS)
 
@@ -61,7 +49,11 @@ def CurrentShows():
 		if id:
 			show_ids.append(id.group(1))
 
-		oc.add(DirectoryObject(key=Callback(Show, show=title, url=url, thumb=thumb), title=title, thumb=Callback(GetThumb, url=thumb)))
+		oc.add(DirectoryObject(
+			key = Callback(Show, show=title, url=url, thumb=thumb),
+			title = title,
+			thumb = Resource.ContentsOfURLWithFallback(thumb)
+		))
 
 	# Try to find shows missing from the main video page
 	try:
@@ -92,7 +84,7 @@ def CurrentShows():
 @route('/video/nbc/classictv')
 def ClassicTV():
 
-	oc = ObjectContainer(title2='Classic TV', view_group='List')
+	oc = ObjectContainer(title2='Classic TV')
 	content = HTML.ElementFromURL(CLASSIC_TV)
 
 	for show in content.xpath('//h2[text()="classic tv"]/following-sibling::div//div[@class="thumb-block"]'):
@@ -103,8 +95,13 @@ def ClassicTV():
 		url = url[0]
 		title = show.xpath('.//div[@class="title"]/text()')[0].strip()
 		thumb = show.xpath('.//img/@src')[0]
+		thumb = thumb.replace('150x84xC', '640x360xC')
 
-		oc.add(DirectoryObject(key=Callback(Show, show=title, url=url, thumb=thumb), title=title, thumb=Callback(GetThumb, url=thumb)))
+		oc.add(DirectoryObject(
+			key = Callback(Show, show=title, url=url, thumb=thumb),
+			title = title,
+			thumb = Resource.ContentsOfURLWithFallback(thumb)
+		))
 
 	return oc
 
@@ -112,7 +109,7 @@ def ClassicTV():
 @route('/video/nbc/show')
 def Show(show, url, thumb=None):
 
-	oc = ObjectContainer(title2=show, view_group='List')
+	oc = ObjectContainer(title2=show)
 
 	try: base = RE_BASE_URL.search(url).group(1)
 	except: base = BASE_URL
@@ -129,7 +126,11 @@ def Show(show, url, thumb=None):
 		if url.find('http://') == -1:
 			url = base + url
 
-		oc.add(DirectoryObject(key=Callback(Episodes, show=show, title=title, url=url, base=base), title=title, thumb=Callback(GetThumb, url=thumb)))
+		oc.add(DirectoryObject(
+			key = Callback(Episodes, show=show, title=title, url=url, base=base),
+			title = title,
+			thumb = Resource.ContentsOfURLWithFallback(thumb)
+		))
 
 	if len(oc) == 0:
 		return ObjectContainer(header='Empty', message='This directory is empty')
@@ -140,7 +141,7 @@ def Show(show, url, thumb=None):
 @route('/video/nbc/episodes')
 def Episodes(show, title, url, base):
 
-	oc = ObjectContainer(title1=show, title2=title, view_group='InfoList')
+	oc = ObjectContainer(title1=show, title2=title)
 	content = HTML.ElementFromURL(url)
 
 	for episode in content.xpath('//div[contains(@class, "thumb-view")]//div[contains(@class, "thumb-block")]'):
@@ -152,15 +153,15 @@ def Episodes(show, title, url, base):
 		episode_title = episode.xpath('.//div[@class="title"]')[0].text.strip()
 		air_date = episode.xpath('./div[@class="meta"]/p')[0].text.split(': ', 1)[1]
 		date = Datetime.ParseDate(air_date).date()
-		thumb_url = episode.xpath('.//img')[0].get('src')
-		thumb_url = RE_THUMB_SIZE.sub('w=640&h=360', thumb_url)
+		thumb = episode.xpath('.//img')[0].get('src')
+		thumb = RE_THUMB_SIZE.sub('w=640&h=360', thumb)
 
 		oc.add(EpisodeObject(
 			url = video_url,
 			show = show,
 			title = episode_title,
 			originally_available_at = date,
-			thumb = Callback(GetThumb, url=thumb_url)
+			thumb = Resource.ContentsOfURLWithFallback(thumb)
 		))
 
 	# More than 1 page?
@@ -174,18 +175,3 @@ def Episodes(show, title, url, base):
 		return ObjectContainer(header='Empty', mesage='This directory is empty')
 
 	return oc
-
-####################################################################################################
-def GetThumb(url=None, path=None, pid=None, classic_tv=False):
-
-	if url is None:
-		if classic_tv:
-			url = THUMB_URL % (480, path, pid)
-		else:
-			url = THUMB_URL % (360, path, pid)
-
-	try:
-		data = HTTP.Request(url, cacheTime=CACHE_1MONTH).content
-		return DataObject(data, 'image/jpeg')
-	except:
-		return Redirect(R(ICON))
