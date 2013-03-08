@@ -24,10 +24,33 @@ def Start():
 def MainMenu():
 
 	oc = ObjectContainer()
+
+	if not Platform.HasWebKit:
+		oc.header = 'Not supported'
+		oc.message = 'Server platform not supported'
+		if Client.Product == 'Web Client':
+			oc.add(Error('Server platform not supported'))
+		return oc
+	elif not Platform.HasFlash:
+		oc.header = 'Missing Flash plugin'
+		oc.message = 'Flash browser plugin is missing'
+		if Client.Product == 'Web Client':
+			oc.add(Error('Flash browser plugin is missing'))
+		return oc
+
 	oc.add(DirectoryObject(key=Callback(CurrentShows), title='Current Shows'))
 	oc.add(DirectoryObject(key=Callback(ClassicTV), title='Classic TV'))
 
 	return oc
+
+####################################################################################################
+@route('/video/nbc/error')
+def Error(title):
+
+	return DirectoryObject(
+		key = Callback(Error, title=title),
+		title = title
+	)
 
 ####################################################################################################
 @route('/video/nbc/currentshows')
