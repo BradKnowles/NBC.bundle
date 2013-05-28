@@ -17,7 +17,7 @@ def Start():
 
 	ObjectContainer.title1 = 'NBC'
 	HTTP.CacheTime = CACHE_1HOUR
-	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:18.0) Gecko/20100101 Firefox/18.0'
+	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:21.0) Gecko/20100101 Firefox/21.0'
 
 ####################################################################################################
 @handler('/video/nbc', 'NBC')
@@ -25,32 +25,15 @@ def MainMenu():
 
 	oc = ObjectContainer()
 
-	if not Platform.HasWebKit:
+	if not Client.Platform in ('Android', 'iOS', 'Roku', 'Safari', 'Firefox'):
 		oc.header = 'Not supported'
-		oc.message = 'Server platform not supported'
-		if Client.Product == 'Web Client':
-			oc.add(Error('Server platform not supported'))
-		return oc
-	elif not Platform.HasFlash:
-		oc.header = 'Missing Flash plugin'
-		oc.message = 'Flash browser plugin is missing'
-		if Client.Product == 'Web Client':
-			oc.add(Error('Flash browser plugin is missing'))
+		oc.message = 'This channel is not supported on %s' % (Client.Platform if Client.Platform is not None else 'this client')
 		return oc
 
 	oc.add(DirectoryObject(key=Callback(CurrentShows), title='Current Shows'))
 	oc.add(DirectoryObject(key=Callback(ClassicTV), title='Classic TV'))
 
 	return oc
-
-####################################################################################################
-@route('/video/nbc/error')
-def Error(title):
-
-	return DirectoryObject(
-		key = Callback(Error, title=title),
-		title = title
-	)
 
 ####################################################################################################
 @route('/video/nbc/currentshows')
