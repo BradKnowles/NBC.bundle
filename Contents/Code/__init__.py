@@ -77,6 +77,10 @@ def CurrentShows():
 
 			show_ids.append(id)
 			url = '%s/video' % url.rstrip('/')
+
+			if not show.text:
+				continue
+
 			title = show.text.strip()
 
 			oc.add(DirectoryObject(key=Callback(Show, show=title, url=url), title=title))
