@@ -4,8 +4,6 @@
 <dict>
 	<key>CFBundleIdentifier</key>
 	<string>com.plexapp.plugins.nbc</string>
-	<key>PlexClientPlatformExclusions</key>
-	<string>Roku</string>
 	<key>PlexClientPlatforms</key>
 	<string>Android,iOS,Roku,Safari,Firefox,Chrome</string>
 	<key>PlexFrameworkVersion</key>
