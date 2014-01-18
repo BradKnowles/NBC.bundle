@@ -1,5 +1,5 @@
 BASE_URL = 'http://www.nbc.com'
-CURRENT_SHOWS = '%s/video/library/full-episodes/' % BASE_URL
+CURRENT_SHOWS = '%s/shows/' % BASE_URL
 CLASSIC_TV = '%s/classic-tv/' % BASE_URL
 
 # Thumbs
@@ -17,7 +17,7 @@ def Start():
 
 	ObjectContainer.title1 = 'NBC'
 	HTTP.CacheTime = CACHE_1HOUR
-	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:21.0) Gecko/20100101 Firefox/21.0'
+	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:26.0) Gecko/20100101 Firefox/26.0'
 
 ####################################################################################################
 @handler('/video/nbc', 'NBC')
@@ -43,49 +43,30 @@ def CurrentShows():
 	show_ids = []
 	content = HTML.ElementFromURL(CURRENT_SHOWS)
 
-	for show in content.xpath('//div[contains(@class, "group-full-eps")]//li'):
+	for show in content.xpath('//a[@title="Full Episodes"]/parent::td/preceding-sibling::td[6]'):
 		url = show.xpath('./a/@href')[0]
 		if '/classic-tv/' in url:
 			continue
+		url = '%s/video/' % url.rstrip('/')
 
-		title = show.xpath('./p/text()')[0].strip()
-		thumb = show.xpath('./a/img/@src')[0]
-
-		id = RE_SHOW_ID.search(url)
-		if id:
-			show_ids.append(id.group(1))
+		title = show.xpath('./a/p/text()')[0].strip()
 
 		oc.add(DirectoryObject(
-			key = Callback(Show, show=title, url=url, thumb=thumb),
-			title = title,
-			thumb = Resource.ContentsOfURLWithFallback(thumb)
+			key = Callback(Show, show=title, url=url),
+			title = title
 		))
 
-	# Try to find shows missing from the main video page
-	try:
-		content = HTML.ElementFromURL('http://www.nbc.com/assets/core/themes/2012/nbc/includes/auto-generated/dropdowns-global.shtml')
+	# Ugh, NBC site is *still* a big mess, even after the 5667654563465787 updates they did...
+	# Add those 2 nice shows manually, other missing shows are mostly crap and not worth watching anyway.
+	oc.add(DirectoryObject(
+		key = Callback(Show, show='Community', url='http://www.nbc.com/community/video/'),
+		title = 'Community'
+	))
 
-		for show in content.xpath('//li[text()="Current Shows"]/parent::ul/following-sibling::div//ul/li/a'):
-			url = show.get('href')
-
-			id = RE_SHOW_ID.search(url)
-			if id:
-				id = id.group(1)
-
-			if id in show_ids:
-				continue
-
-			show_ids.append(id)
-			url = '%s/video' % url.rstrip('/')
-
-			if not show.text:
-				continue
-
-			title = show.text.strip()
-
-			oc.add(DirectoryObject(key=Callback(Show, show=title, url=url), title=title))
-	except:
-		pass
+	oc.add(DirectoryObject(
+		key = Callback(Show, show='Hannibal', url='http://www.nbc.com/hannibal/video/'),
+		title = 'Hannibal'
+	))
 
 	oc.objects.sort(key=lambda obj: obj.title.replace('The ', ''))
 	return oc
@@ -117,7 +98,7 @@ def ClassicTV():
 
 ####################################################################################################
 @route('/video/nbc/show')
-def Show(show, url, thumb=None):
+def Show(show, url):
 
 	oc = ObjectContainer(title2=show)
 
@@ -138,8 +119,7 @@ def Show(show, url, thumb=None):
 
 		oc.add(DirectoryObject(
 			key = Callback(Episodes, show=show, title=title, url=url, base=base),
-			title = title,
-			thumb = Resource.ContentsOfURLWithFallback(thumb)
+			title = title
 		))
 
 	if len(oc) == 0:
@@ -155,7 +135,7 @@ def Episodes(show, title, url, base):
 	content = HTML.ElementFromURL(url)
 
 	for episode in content.xpath('//div[contains(@class, "thumb-view")]//div[contains(@class, "thumb-block")]'):
-		video_url = episode.xpath('./a')[0].get('href')
+		video_url = episode.xpath('./a/@href')[0]
 
 		if video_url.find('http://') == -1:
 			video_url = base + video_url
@@ -163,7 +143,7 @@ def Episodes(show, title, url, base):
 		episode_title = episode.xpath('.//div[@class="title"]')[0].text.strip()
 		air_date = episode.xpath('./div[@class="meta"]/p')[0].text.split(': ', 1)[1]
 		date = Datetime.ParseDate(air_date).date()
-		thumb = episode.xpath('.//img')[0].get('src')
+		thumb = episode.xpath('.//img/@src')[0]
 		thumb = RE_THUMB_SIZE.sub('w=640&h=360', thumb)
 
 		oc.add(EpisodeObject(
@@ -176,12 +156,12 @@ def Episodes(show, title, url, base):
 
 	# More than 1 page?
 	if len(content.xpath('//div[@class="nbcu_pager"]')) > 0:
-		next_url = base + content.xpath('//div[@class="nbcu_pager"]//a[text()="Next"]')[0].get('href')
+		next_url = base + content.xpath('//div[@class="nbcu_pager"]//a[text()="Next"]/@href')[0]
 
 		if next_url != url:
 			oc.add(NextPageObject(key=Callback(Episodes, title=title, url=next_url, base=base), title='Next ...'))
 
-	if len(oc) == 0:
+	if len(oc) < 1:
 		return ObjectContainer(header='Empty', mesage='This directory is empty')
 
 	return oc
