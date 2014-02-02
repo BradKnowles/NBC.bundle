@@ -1,16 +1,13 @@
+# LATE NIGHT WITH JIMMY FALON USES OLD FORMAT
+
 BASE_URL = 'http://www.nbc.com'
-CURRENT_SHOWS = '%s/shows/' % BASE_URL
-CLASSIC_TV = '%s/classic-tv/' % BASE_URL
 
-# Thumbs
-# %d = 360, or 480 for classic tv
-# %s = 'nbc2', or 'nbcrewind2' for classic tv
-# %s = pid
-THUMB_URL = 'http://video.nbc.com/player/mezzanine/image.php?w=640&h=%d&path=%s/%s_mezzn.jpg&trusted=yes'
+# This is the json document for the main links and pull down menus at the top of each page on the site
+SECTION_CAROUSEL = "http://www.nbc.com/data/node/%s/video_carousel?range="
 
-RE_BASE_URL = Regex('(http://[^/]+)')
+# Variables for old format 
 RE_THUMB_SIZE = Regex('w=[0-9]+&h=[0-9]+')
-RE_SHOW_ID = Regex('nbc.com/([^/]+)/')
+RE_BASE_URL = Regex('(http://[^/]+)')
 
 ####################################################################################################
 def Start():
@@ -30,75 +27,139 @@ def MainMenu():
 		oc.message = 'This channel is not supported on %s' % (Client.Platform if Client.Platform is not None else 'this client')
 		return oc
 
-	oc.add(DirectoryObject(key=Callback(CurrentShows), title='Current Shows'))
-	oc.add(DirectoryObject(key=Callback(ClassicTV), title='Classic TV'))
+	oc.add(DirectoryObject(key=Callback(Section, title='Current shows'), title='Current Shows'))
+	oc.add(DirectoryObject(key=Callback(Section, title='Classics'), title='Classics'))
 
 	return oc
 
 ####################################################################################################
-@route('/video/nbc/currentshows')
-def CurrentShows():
+# This function creates a list of shows and icons for both current and classic shows using the show page
+@route('/video/nbc/section')
+def Section(title):
 
-	oc = ObjectContainer(title2='Current Shows')
-	show_ids = []
-	content = HTML.ElementFromURL(CURRENT_SHOWS)
+	oc = ObjectContainer(title2=title)
+	# Here we form the video page and show page url for current shows and classics
+	if 'Current' in title:
+		all_url = BASE_URL + '/video'
+		local_url = BASE_URL + '/shows/current'
+	else:
+		all_url = BASE_URL + '/video/classics'
+		local_url = BASE_URL + '/shows/classic'
+	# This takes you to the video or classic video page to get the latest videos
+	oc.add(DirectoryObject(key=Callback(Show, show='Latest Videos', url=all_url), title='Latest Videos'))
+	html = HTML.ElementFromURL(local_url)
 
-	for show in content.xpath('//a[@title="Full Episodes"]/parent::td/preceding-sibling::td[6]'):
-		url = show.xpath('./a/@href')[0]
-		if '/classic-tv/' in url:
-			continue
-		url = '%s/video/' % url.rstrip('/')
-
-		title = show.xpath('./a/p/text()')[0].strip()
-
-		oc.add(DirectoryObject(
-			key = Callback(Show, show=title, url=url),
-			title = title
-		))
-
-	# Ugh, NBC site is *still* a big mess, even after the 5667654563465787 updates they did...
-	# Add those 2 nice shows manually, other missing shows are mostly crap and not worth watching anyway.
-	oc.add(DirectoryObject(
-		key = Callback(Show, show='Community', url='http://www.nbc.com/community/video/'),
-		title = 'Community'
-	))
-
-	oc.add(DirectoryObject(
-		key = Callback(Show, show='Hannibal', url='http://www.nbc.com/hannibal/video/'),
-		title = 'Hannibal'
-	))
-
-	oc.objects.sort(key=lambda obj: obj.title.replace('The ', ''))
-	return oc
-
-####################################################################################################
-@route('/video/nbc/classictv')
-def ClassicTV():
-
-	oc = ObjectContainer(title2='Classic TV')
-	content = HTML.ElementFromURL(CLASSIC_TV)
-
-	for show in content.xpath('//h2[text()="classic tv"]/following-sibling::div//div[@class="thumb-block"]'):
-		url = show.xpath('.//a[contains(@href, "/classic-tv/") and contains(@href, "/video")]/@href')
-		if len(url) < 1:
-			continue
-
-		url = url[0]
-		title = show.xpath('.//div[@class="title"]/text()')[0].strip()
-		thumb = show.xpath('.//img/@src')[0]
-		thumb = thumb.replace('150x84xC', '640x360xC')
-
-		oc.add(DirectoryObject(
-			key = Callback(Show, show=title, url=url, thumb=thumb),
-			title = title,
-			thumb = Resource.ContentsOfURLWithFallback(thumb)
-		))
+	# List is shwoing up blank
+	for show in html.xpath('//div[contains(@class,"shows_grid")]/div/a'):
+		url = show.xpath('./@href')[0]
+		# They do not give a title and the @title and @alt for images can contain summary or art references
+		# So instead we are converting the url to the title. Classic TV shows have a subfolder '/classic-tv' in the url
+		title_list = url.split('/')
+		title = title_list[len(title_list)-1].replace('-', ' ').title()
+		if not url.startswith('http://'):
+			url = BASE_URL + url
+		thumb = show.xpath('./img/@src')[0]
+		oc.add(DirectoryObject(key=Callback(Show, show=title, url=url+'/video', thumb=thumb), title=title, thumb=thumb))
 
 	return oc
 
 ####################################################################################################
+# This function creates the sections of videos for each shows video page
+# It pulls the carousel id number and uses it to create the carousel's json url  
 @route('/video/nbc/show')
-def Show(show, url):
+def Show(show, url, thumb):
+
+	oc = ObjectContainer(title2=show)
+
+	html = HTML.ElementFromURL(url)
+
+	for category in html.xpath('//div[contains(@id,"nbc_mpx_carousel")]'):
+		carousel_id = category.xpath('./@id')[0].split('carousel_')[1]
+		car_url = SECTION_CAROUSEL %carousel_id
+		# They break up the title into parts and some only have one part that may be in a span tag or may not be
+		# So we create it as a list and join it. Because text tag can be h2 or h1, look for pane-title class
+		title_list = category.xpath('.//*[@class="pane-title"]//text()')
+		cat_title = ''.join(title_list).replace('  ', ' ').strip()
+		# Some symbols are not translated so we have to do that manually 
+		cat_title = FixTitle(cat_title) 
+
+		oc.add(DirectoryObject(
+			key = Callback(Episodes, show=show, title=cat_title, url=car_url),
+			title = cat_title,
+			thumb=thumb
+		))
+
+	# We try to see if those with not videos will work with the old setup
+	if len(oc) == 0:
+		# Late Night with Jimmy Fallon still uses the old format
+		if 'jimmy-fallon' in url:
+			new_url = html.xpath('//meta[@property="og:url"]/@content')[0]
+			oc.add(DirectoryObject(key=Callback(ShowOld, show=show, url=new_url), title=show))
+		else:
+			Log('Still no value for show')
+			return ObjectContainer(header='Empty', message='This directory is empty')
+
+	return oc
+
+####################################################################################################
+# This function creates a list of videos from the carousels json file for each video section of a show 
+@route('/video/nbc/episodes')
+def Episodes(show, title, url, range='1-20'):
+
+	oc = ObjectContainer(title1=show, title2=title)
+	local_url = url + range
+	json = JSON.ObjectFromURL(local_url)
+
+	for video in json['entries']:
+		vid_url = BASE_URL + video['link']
+		summary = video['description']
+		title = video['title']
+		# Some symbols are not translated so we have to do that manually
+		title = FixTitle(title) 
+		date = Datetime.FromTimestamp(video['pubDate'] / 1000)
+		# Not all have an episode number. But all have a season
+		season = int(video['pl1$seasonNumber'])
+		try: episode = int(video['pl1$episodeNumber'])
+		except: episode = 0
+		thumb = video['plmedia$defaultThumbnailUrl']['big']
+
+		oc.add(EpisodeObject(
+			url = vid_url,
+			season = season,
+			index = episode,
+			summary = summary,
+			title = title,
+			originally_available_at = date,
+			thumb = Resource.ContentsOfURLWithFallback(url=thumb)
+		))
+
+	# PAGING
+	if int(json['entryCount'])>=20:
+		start = int(json['startIndex']) + 20
+		end = start + 19
+		range = '%s-%s' %(str(start), str(end))
+		oc.add(NextPageObject(key=Callback(Episodes, show=show, title=title, url=url, range=range), title='Next ...'))
+
+	if len(oc) < 1:
+		return ObjectContainer(header='Empty', mesage='This directory is empty')
+
+	return oc
+####################################################################################################
+# This function fixes html special characters that do not translate
+@route('/video/nbc/fixtitle')
+def FixTitle(title):
+
+	if "&quot;" in title:
+		title = title.replace('&quot;', '"')
+	if "&#039;" in title:
+		title = title.replace("&#039;", "'")
+
+	return title
+
+####################################################################################################
+# Late Night with Jimmy Fallon still uses the old format
+@route('/video/nbc/showold')
+def ShowOld(show, url):
 
 	oc = ObjectContainer(title2=show)
 
@@ -118,7 +179,7 @@ def Show(show, url):
 			url = base + url
 
 		oc.add(DirectoryObject(
-			key = Callback(Episodes, show=show, title=title, url=url, base=base),
+			key = Callback(EpisodesOld, show=show, title=title, url=url, base=base),
 			title = title
 		))
 
@@ -128,10 +189,12 @@ def Show(show, url):
 	return oc
 
 ####################################################################################################
-@route('/video/nbc/episodes')
-def Episodes(show, title, url, base):
+# Late Night with Jimmy Fallon still uses the old format
+@route('/video/nbc/episodesold')
+def EpisodesOld(show, title, url, base):
 
 	oc = ObjectContainer(title1=show, title2=title)
+	content = HTML.ElementFromURL(url)
 	content = HTML.ElementFromURL(url)
 
 	for episode in content.xpath('//div[contains(@class, "thumb-view")]//div[contains(@class, "thumb-block")]'):
