@@ -111,9 +111,6 @@ def Episodes(show, title, url):
 	json = JSON.ObjectFromURL(url)
 
 	for video in json['entries']:
-		if video['link'].split('/')[-1][0:1] != 'n':
-			continue
-
 		vid_url = BASE_URL + video['link']
 		summary = String.DecodeHTMLEntities(video['description'])
 		title = String.DecodeHTMLEntities(video['title'])
