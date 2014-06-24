@@ -49,7 +49,7 @@ def Episodes(show_id, show):
 
 		episode_id = episode['assetID']
 		title = episode['title']
-		url = VIDEO_URL % (show.replace(' ', '-').lower(), title.replace(' ', '-').lower(), episode_id.split('_')[-1], show_id, episode_id)
+		url = VIDEO_URL % (show.replace(' ', '-').lower(), title.replace(' ', '-').replace('/', '-').lower(), episode_id.split('_')[-1], show_id, episode_id)
 
 		oc.add(EpisodeObject(
 			url = url,
