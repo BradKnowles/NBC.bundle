@@ -16,7 +16,7 @@ def Shows():
 
 	oc = ObjectContainer()
 
-	if not Client.Platform in ('Android', 'iOS', 'Roku', 'Safari', 'Windows', 'Windows Phone'):
+	if not Client.Platform in ('Android', 'iOS', 'Roku', 'Safari'):
 		oc.header = 'Not supported'
 		oc.message = 'This channel is not supported on %s' % (Client.Platform if Client.Platform is not None else 'this client')
 		return oc
