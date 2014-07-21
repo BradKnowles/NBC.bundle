@@ -50,6 +50,7 @@ def Episodes(show_id, show):
 		episode_id = episode['assetID']
 		title = episode['title']
 		url = VIDEO_URL % (show.replace(' ', '-').lower(), title.replace(' ', '-').replace('/', '-').lower(), episode_id.split('_')[-1], show_id, episode_id)
+		url = String.StripDiacritics(url)
 
 		oc.add(EpisodeObject(
 			url = url,
