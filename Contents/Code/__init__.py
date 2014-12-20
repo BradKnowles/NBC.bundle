@@ -52,7 +52,7 @@ def Episodes(show_id, show):
 		url = VIDEO_URL % (show.replace(' ', '-').lower(), title.replace(' ', '-').replace('/', '-').lower(), episode_id.split('_')[-1], show_id, episode_id)
 		url = String.StripDiacritics(url)
 		try: ep_index = int(episode['episodeNumber'])
-		except: ep_index = 0
+		except: ep_index = None
 
 		oc.add(EpisodeObject(
 			url = url,
