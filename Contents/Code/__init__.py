@@ -44,13 +44,15 @@ def Episodes(show_id, show):
 
 	for episode in JSON.ObjectFromURL(EPISODES_URL % show_id)['assetsX']:
 
-		if episode['type'] != 'video' or 'seasonNumber' not in episode or 'episodeNumber' not in episode:
+		if episode['type'] != 'video' or 'seasonNumber' not in episode or episode['subtype'] != 'episode' :
 			continue
 
 		episode_id = episode['assetID']
 		title = episode['title']
 		url = VIDEO_URL % (show.replace(' ', '-').lower(), title.replace(' ', '-').replace('/', '-').lower(), episode_id.split('_')[-1], show_id, episode_id)
 		url = String.StripDiacritics(url)
+		try: ep_index = int(episode['episodeNumber'])
+		except: ep_index = 0
 
 		oc.add(EpisodeObject(
 			url = url,
@@ -59,7 +61,7 @@ def Episodes(show_id, show):
 			summary = episode['description'],
 			thumb = Resource.ContentsOfURLWithFallback(episode['images'][0]['images']['episode_banner']),
 			season = int(episode['seasonNumber']),
-			index = int(episode['episodeNumber']),
+			index = ep_index,
 			duration = episode['totalDuration'],
 			originally_available_at = Datetime.FromTimestamp(episode['firstAiredDate'])
 		))
