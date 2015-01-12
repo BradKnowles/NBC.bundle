@@ -45,7 +45,7 @@ def Episodes(show_id, show):
 
 	for episode in JSON.ObjectFromURL(EPISODES_URL % show_id)['results']:
 
-		if episode['type'] != 'video' or episode['subtype'] != 'episode' or 'seasonNumber' not in episode or requiresAuth:
+		if episode['type'] != 'video' or episode['subtype'] != 'episode' or 'seasonNumber' not in episode or episode['requiresAuth']:
 			continue
 
 		episode_id = episode['assetID']
