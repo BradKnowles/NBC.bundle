@@ -50,7 +50,11 @@ def Episodes(show_id, show):
 
 		episode_id = episode['assetID']
 		title = episode['title']
-		url = VIDEO_URL % (show.replace(' ', '-').lower(), title.replace(' ', '-').replace('/', '-').replace('?', '').lower(), episode_id.split('_')[-1], show_id, episode_id)
+		# Remove parenthesis, apsotrophe, question mark, comma, period and dash from title for url build
+		url_title = title.replace("(", "").replace(")", "").replace("'", "").replace('?', '').replace(',', '').replace('-', '').replace('.', '')
+		# change title spaces and slashes to dashes and make lowercase for url build
+		url_title = url_title.replace('/', '-').replace(' ', '-').lower()
+		url = VIDEO_URL % (show.replace(' ', '-').lower(), url_title, episode_id.split('_')[-1], show_id, episode_id)
 		url = String.StripDiacritics(url)
 		try: ep_index = int(episode['episodeNumber'])
 		except: ep_index = None
