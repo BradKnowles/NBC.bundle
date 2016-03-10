@@ -58,13 +58,15 @@ def Episodes(show_id, show):
 		url = String.StripDiacritics(url)
 		try: ep_index = int(episode['episodeNumber'])
 		except: ep_index = None
+		try: thumb = episode['images'][0]['images']['episode_banner']
+		except: thumb = ''
 
 		oc.add(EpisodeObject(
 			url = url,
 			show = show,
 			title = title,
 			summary = episode['description'],
-			thumb = Resource.ContentsOfURLWithFallback(episode['images'][0]['images']['episode_banner']),
+			thumb = Resource.ContentsOfURLWithFallback(url=thumb),
 			season = int(episode['seasonNumber']),
 			index = ep_index,
 			duration = episode['totalDuration'],
