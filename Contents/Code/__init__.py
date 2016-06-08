@@ -44,12 +44,14 @@ def Episodes(show_id, show):
 			continue
 
 		episode_id = episode['assetID']
+		# get show directory of url
+		parent_id = episode['parentContainerId']
 		title = episode['title']
-		# Remove parenthesis, apsotrophe, question mark, comma, period and dash from title for url build
-		url_title = title.replace("(", "").replace(")", "").replace("'", "").replace('?', '').replace(',', '').replace('-', '').replace('.', '')
+		# Remove parenthesis, apsotrophe, question mark, comma, period, dash, and colon from title for url build
+		url_title = title.replace("(", "").replace(")", "").replace("'", "").replace('?', '').replace(',', '').replace('-', '').replace('.', '').replace(":", "")
 		# change title spaces and slashes to dashes and make lowercase for url build
 		url_title = url_title.replace('/', '-').replace(' ', '-').lower()
-		url = VIDEO_URL % (show.replace(' ', '-').lower(), url_title, episode_id.split('_')[-1], show_id, episode_id)
+		url = VIDEO_URL % (parent_id, url_title, episode_id.split('_')[-1], show_id, episode_id)
 		url = String.StripDiacritics(url)
 		try: ep_index = int(episode['episodeNumber'])
 		except: ep_index = None
