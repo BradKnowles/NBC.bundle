@@ -26,7 +26,7 @@ def Shows():
 		show_id = show['assetID']
 		title = show['title']
 		summary = show['description']
-		thumb = show['images'][0]['images']['show_thumbnail_16_by_9']
+		thumb = show['images'][0]['images']['show_thumbnail_16_by_9'] if 'show_thumbnail_16_by_9' in show['images'][0]['images'] else ''
 
 		oc.add(DirectoryObject(
 			key = Callback(Sections, show_id=show_id, show=title),
