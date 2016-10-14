@@ -26,7 +26,11 @@ def Shows():
 		show_id = show['assetID']
 		title = show['title']
 		summary = show['description']
-		thumb = show['images'][0]['images']['show_thumbnail_16_by_9'] if 'show_thumbnail_16_by_9' in show['images'][0]['images'] else ''
+
+		if len(show['images'][0]['images']) > 0:
+			thumb = show['images'][0]['images']['show_thumbnail_16_by_9'] if 'show_thumbnail_16_by_9' in show['images'][0]['images'] else ''
+		else:
+			thumb = ''
 
 		oc.add(DirectoryObject(
 			key = Callback(Sections, show_id=show_id, show=title),
@@ -44,7 +48,11 @@ def Sections(show_id, show):
 
 	oc = ObjectContainer(title2=show)
 	json_obj = JSON.ObjectFromURL(SECTIONS_URL % (show_id))
-	thumb = json_obj['images'][0]['images']['show_thumbnail_16_by_9']
+
+	if len(json_obj['images'][0]['images']) > 0:
+		thumb = json_obj['images'][0]['images']['show_thumbnail_16_by_9'] if 'show_thumbnail_16_by_9' in show['images'][0]['images'] else ''
+	else:
+		thumb = ''
 
 	has_episodes = False
 	has_clips = False
@@ -81,7 +89,11 @@ def Seasons(show_id, show, filter_by):
 
 	oc = ObjectContainer(title2=show)
 	json_obj = JSON.ObjectFromURL(SECTIONS_URL % (show_id))
-	thumb = json_obj['images'][0]['images']['show_thumbnail_16_by_9']
+
+	if len(json_obj['images'][0]['images']) > 0:
+		thumb = json_obj['images'][0]['images']['show_thumbnail_16_by_9'] if 'show_thumbnail_16_by_9' in show['images'][0]['images'] else ''
+	else:
+		thumb = ''
 
 	for season in json_obj['seasons']:
 
