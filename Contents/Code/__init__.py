@@ -50,7 +50,7 @@ def Sections(show_id, show):
 	json_obj = JSON.ObjectFromURL(SECTIONS_URL % (show_id))
 
 	if len(json_obj['images'][0]['images']) > 0:
-		thumb = json_obj['images'][0]['images']['show_thumbnail_16_by_9'] if 'show_thumbnail_16_by_9' in show['images'][0]['images'] else ''
+		thumb = json_obj['images'][0]['images']['show_thumbnail_16_by_9'] 
 	else:
 		thumb = ''
 
@@ -91,7 +91,7 @@ def Seasons(show_id, show, filter_by):
 	json_obj = JSON.ObjectFromURL(SECTIONS_URL % (show_id))
 
 	if len(json_obj['images'][0]['images']) > 0:
-		thumb = json_obj['images'][0]['images']['show_thumbnail_16_by_9'] if 'show_thumbnail_16_by_9' in show['images'][0]['images'] else ''
+		thumb = json_obj['images'][0]['images']['show_thumbnail_16_by_9'] 
 	else:
 		thumb = ''
 
