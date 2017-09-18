@@ -37,8 +37,8 @@ def ShowSections(title):
 
 	oc = ObjectContainer(title2=title)
 
-	oc.add(DirectoryObject(key = Callback(ShowList, title="Current Shows", url=SHOWS_URL + FILTER %('category', 'Current')), title = "Current Shows"))
-	oc.add(DirectoryObject(key = Callback(ShowList, title="Classic Shows", url=SHOWS_URL + FILTER %('category', 'Classic')), title = "Classic Shows"))
+	oc.add(DirectoryObject(key = Callback(ShowList, title="Current Shows", url=SHOWS_URL + FILTER % ('category', 'Current')), title = "Current Shows"))
+	oc.add(DirectoryObject(key = Callback(ShowList, title="Classic Shows", url=SHOWS_URL + FILTER % ('category', 'Classic')), title = "Classic Shows"))
 	oc.add(DirectoryObject(key = Callback(Genres, title="Shows By Genre", url=SHOWS_URL), title = "Shows By Genre"))
 	oc.add(DirectoryObject(key = Callback(ShowList, title="All Shows", url=SHOWS_URL), title = "All Shows"))
 
@@ -51,12 +51,15 @@ def FullEpSections(title, url=''):
 	oc = ObjectContainer(title2=title)
 
 	# Add full episode filter to url
-	fullep_url = VIDEO_URL + FILTER %('type', 'Full%20Episode')
+	fullep_url = VIDEO_URL + FILTER % ('type', 'Full%20Episode')
+
 	for day_type in ['Primetime', 'LateNight', 'Daytime', ]:
-		day_url = fullep_url + FILTER %('dayPart', day_type)
-		oc.add(DirectoryObject(key = Callback(VideoList, title="%s Episodes" %day_type, url=day_url), title="%s Episodes" %day_type))
-	oc.add(DirectoryObject(key = Callback(Genres, title="Full Episodes By Genre", url=fullep_url), title = "Full Episodes By Genre"))
-	oc.add(DirectoryObject(key = Callback(VideoList, title="All Full Episodes", url=fullep_url), title = "All Full Episodes"))
+
+		day_url = fullep_url + FILTER % ('dayPart', day_type)
+		oc.add(DirectoryObject(key = Callback(VideoList, title="%s Episodes" % (day_type), url=day_url), title="%s Episodes" % (day_type)))
+
+	oc.add(DirectoryObject(key = Callback(Genres, title="Full Episodes By Genre", url=fullep_url), title="Full Episodes By Genre"))
+	oc.add(DirectoryObject(key = Callback(VideoList, title="All Full Episodes", url=fullep_url), title="All Full Episodes"))
 
 	return oc
 
@@ -69,7 +72,7 @@ def Genres(title, url):
 
 	for item in GENRES:
 
-		sort_url = url + FILTER %('genre', String.Quote(item, usePlus = False))
+		sort_url = url + FILTER % ('genre', String.Quote(item, usePlus = False))
 
 		if 'Shows' in title:
 			# Skip the genre fields that do not work for shows
@@ -215,6 +218,7 @@ def VideoList(title, url):
 		return ObjectContainer(header="Empty", message="There are no results to list.")
 	else:
 		return oc
+
 ####################################################################################################
 # This function pulls the image url from the included image data using the image id for each show or video
 @route(PREFIX + '/getimage')
