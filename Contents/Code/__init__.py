@@ -105,7 +105,7 @@ def ShowList(title, url):
 	for show in json['data']:
 
 		show_title = show['attributes']['shortTitle']
-		summary = show['attributes']['shortDescription']
+		summary = String.StripTags(unicode(show['attributes']['shortDescription']))
 
 		thumb_id = show['relationships']['image']['data']['id']
 		thumb = GetImage(thumb_id, json)
